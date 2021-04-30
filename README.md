@@ -55,6 +55,9 @@ set :disallow_pushing, true
 
 # if you prefer bzip2/unbzip2 instead of gzip
 set :compressor, :bzip2
+
+# if you need extra options to dump script
+set :db_dump_extra_opts, '--force'
 ```
 
 Add to .gitignore

@@ -64,10 +64,14 @@ module Database
 
     def dump_cmd
       if mysql?
-        "mysqldump #{credentials} #{database} #{dump_cmd_opts}"
+        "mysqldump #{credentials} #{database} #{dump_cmd_opts} #{extra_dump_opts}"
       elsif postgresql?
-        "#{pgpass} pg_dump #{credentials} #{database} #{dump_cmd_opts}"
+        "#{pgpass} pg_dump #{credentials} #{database} #{dump_cmd_opts} #{extra_dump_opts}"
       end
+    end
+
+    def extra_dump_opts
+      @cap.fetch(:db_dump_extra_opts, '')
     end
 
     def import_cmd(file)
