@@ -17,6 +17,10 @@ module Database
       %w(postgresql pg postgis chronomodel).include? @config['adapter']
     end
 
+    def pv?
+      @cap.fetch(:db_load_use_pv) && system('which pv > /dev/null 2>&1')
+    end
+
     def credentials
       credential_params = ""
       username = @config['username'] || @config['user']
@@ -76,10 +80,20 @@ module Database
 
     def import_cmd(file)
       if mysql?
-        "mysql #{credentials} -D #{database} < #{file}"
+        if pv?
+          "pv #{file} | mysql #{credentials} -D #{database}"
+        else
+          "mysql #{credentials} -D #{database} < #{file}"
+        end
       elsif postgresql?
         terminate_connection_sql = "SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = '#{database}' AND pid <> pg_backend_pid();"
-        "#{pgpass} psql -c \"#{terminate_connection_sql};\" #{credentials} #{database}; #{pgpass} dropdb #{credentials} #{database}; #{pgpass} createdb #{credentials} #{database}; #{pgpass} psql #{credentials} -d #{database} < #{file}"
+        cmd = "#{pgpass} psql -c \"#{terminate_connection_sql};\" #{credentials} #{database}; #{pgpass} dropdb #{credentials} #{database}; #{pgpass} createdb #{credentials} #{database}; "
+
+        if pv?
+          cmd << "pv #{file} | #{pgpass} psql #{credentials} -d #{database}"
+        else
+          cmd << "#{pgpass} psql #{credentials} -d #{database} < #{file}"
+        end
       end
     end
 
